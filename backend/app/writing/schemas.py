@@ -1,10 +1,13 @@
-from pydantic import BaseModel, Field
+from datetime import datetime
 from typing import List
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EssayRequest(BaseModel):
     essay: str = Field(..., min_length=50, description="The IELTS essay text")
-    task_type: str = Field(default="task2", description="task1 or task2")
+    task_type: str = Field(default="task2", pattern="^task[12]$", description="task1 or task2")
+    prompt_text: str = Field(default="", description="The question the essay answers")
 
 
 class EssayMetrics(BaseModel):
@@ -25,6 +28,21 @@ class BandScores(BaseModel):
 
 
 class EssayResult(BaseModel):
+    submission_id: int
     metrics: EssayMetrics
     bands: BandScores
     feedback: List[str]
+
+
+class WritingSubmissionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    writing_id: int
+    task_type: str
+    word_count: int
+    task_response_score: float | None
+    grammar_score: float | None
+    coherence_score: float | None
+    vocabulary_score: float | None
+    status: str
+    submitted_at: datetime
