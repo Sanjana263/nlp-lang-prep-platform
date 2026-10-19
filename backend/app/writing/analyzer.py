@@ -1,8 +1,9 @@
 import spacy
+from app.core.config import get_settings
 from app.writing.schemas import EssayMetrics
 
 # Load the English model once, when the server starts
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load(get_settings().SPACY_MODEL)
 
 # Dependency labels that mark a subordinate or complex clause
 SUBORDINATE_DEPS = {"advcl", "ccomp", "xcomp", "relcl", "acl", "csubj"}

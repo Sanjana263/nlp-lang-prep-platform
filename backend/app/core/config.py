@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # NFR-2.5: session expires after this long
 
+    # spaCy pipeline used by the NLP engine. Must be installed (see pyproject.toml).
+    SPACY_MODEL: str = "en_core_web_lg"
+
     # Origins allowed to call the API from a browser (the Next.js dev server by default)
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
