@@ -1,26 +1,115 @@
 @import "tailwindcss";
 
+/*
+ * Cadence design tokens.
+ * Concept: an examiner's desk. Cool paper surfaces, ballpoint-blue ink for actions,
+ * red pen for mistakes, and the 0–9 band scale as the recurring visual device.
+ * Components use these tokens through Tailwind (bg-paper, text-ink-2, border-rule…);
+ * never raw palette classes (zinc-*, indigo-*) or hex values.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #f5f7fa;        /* page background */
+  --surface: #ffffff;      /* panels, inputs */
+  --surface-2: #eef1f6;    /* muted fills, tracks, hover */
+  --ink: #121a2b;          /* primary text */
+  --ink-2: #4b5568;        /* secondary text */
+  --ink-3: #697286;        /* captions, placeholders (4.5:1 on surface) */
+  --rule: #dce1ea;         /* hairlines, card borders */
+  --rule-strong: #c3cad7;  /* input borders */
+  --accent: #1d4ed8;       /* ballpoint blue: primary actions, links, focus */
+  --accent-hover: #1a43b8;
+  --accent-soft: #e7eefd;
+  --on-accent: #ffffff;
+  --red-pen: #b83228;      /* mistakes and errors */
+  --red-soft: #fbeceb;
+  --band-strong: #0d7349;  /* band 7+ */
+  --band-good: #1d4ed8;    /* 6–6.5 */
+  --band-fair: #9a5806;    /* 5–5.5 */
+  --band-weak: #b83228;    /* below 5 */
+  --success: #0d7349;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #0c111a;
+    --surface: #141b27;
+    --surface-2: #1b2433;
+    --ink: #e8ecf3;
+    --ink-2: #aab3c4;
+    --ink-3: #8b95a8;
+    --rule: #252f41;
+    --rule-strong: #364257;
+    --accent: #84a6ff;
+    --accent-hover: #a2bcff;
+    --accent-soft: #1b2947;
+    --on-accent: #0c111a;
+    --red-pen: #ff8f85;
+    --red-soft: #3a1c1d;
+    --band-strong: #5fd6a0;
+    --band-good: #84a6ff;
+    --band-fair: #f1b552;
+    --band-weak: #ff8f85;
+    --success: #5fd6a0;
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-red-pen: var(--red-pen);
+  --color-red-soft: var(--red-soft);
+  --color-band-strong: var(--band-strong);
+  --color-band-good: var(--band-good);
+  --color-band-fair: var(--band-fair);
+  --color-band-weak: var(--band-weak);
+  --color-success: var(--success);
+
+  --font-display: var(--font-crimson), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-atkinson), system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-atkinson-mono), ui-monospace, "Cascadia Mono", monospace;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Answer-sheet ruling for the essay editor: one rule per line of text (line-height 2rem). */
+.ruled {
+  background-image: linear-gradient(to bottom, transparent calc(2rem - 1px), var(--rule) calc(2rem - 1px));
+  background-size: 100% 2rem;
+  background-attachment: local;
+  line-height: 2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

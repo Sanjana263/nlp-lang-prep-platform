@@ -1,30 +1,30 @@
 "use client";
 
-import Link from "next/link";
+import { ArrowRightIcon } from "@phosphor-icons/react/ssr";
+import { LinkButton } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 
-const primary =
-  "rounded-lg bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500";
-const secondary =
-  "rounded-lg border border-zinc-300 px-5 py-3 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800";
-
-export function HomeCta() {
+/** Calls to action on the public home page; they swap to "Go to dashboard" once logged in. */
+export function HomeCta({ placement }: { placement: "nav" | "hero" }) {
   const { status } = useAuth();
+  const size = placement === "nav" ? "sm" : "md";
+
   if (status === "authenticated") {
     return (
-      <Link href="/dashboard" className={primary}>
-        Go to dashboard
-      </Link>
+      <LinkButton href="/dashboard" size={size}>
+        Go to dashboard <ArrowRightIcon aria-hidden size={16} weight="bold" />
+      </LinkButton>
     );
   }
   return (
     <>
-      <Link href="/register" className={primary}>
-        Create free account
-      </Link>
-      <Link href="/login" className={secondary}>
+      <LinkButton href="/login" variant={placement === "nav" ? "ghost" : "secondary"} size={size}>
         Log in
-      </Link>
+      </LinkButton>
+      <LinkButton href="/register" size={size}>
+        {placement === "hero" ? "Start practising free" : "Create account"}
+        {placement === "hero" && <ArrowRightIcon aria-hidden size={16} weight="bold" />}
+      </LinkButton>
     </>
   );
 }
