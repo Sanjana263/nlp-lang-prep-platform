@@ -1,0 +1,18 @@
+{
+  "name": "cadence",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "predev": "npm run migrate",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "node scripts/py.mjs -m uvicorn app.main:app --reload",
+    "dev:web": "npm --prefix frontend run dev",
+    "migrate": "node scripts/py.mjs -m alembic upgrade head",
+    "test": "node scripts/py.mjs -m pytest",
+    "lint": "npm --prefix frontend run lint",
+    "create-admin": "node scripts/py.mjs -m scripts.create_admin"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
