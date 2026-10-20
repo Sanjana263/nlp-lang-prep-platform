@@ -1,3 +1,6 @@
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -6,9 +9,23 @@ from sqlalchemy.orm import Session
 from app.auth.router import router as auth_router, users_router
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.speaking.router import router as speaking_router
 from app.writing.router import router as writing_router
 
-app = FastAPI(title="Cadence API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    settings = get_settings()
+    if settings.SPEECH_MODE == "local" and settings.SPEECH_WARMUP:
+        from app.speaking.service import warm_up
+
+        threading.Thread(
+            target=warm_up, args=(settings.SPEECH_STT_MODEL, settings.SPEECH_PHONEME_MODEL), daemon=True
+        ).start()
+    yield
+
+
+app = FastAPI(title="Cadence API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +37,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(writing_router)
+app.include_router(speaking_router)
 
 
 @app.get("/health")
