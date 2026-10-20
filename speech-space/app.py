@@ -24,7 +24,9 @@ model.to("cuda")
 pronunciation.expected_phones(["hello"])  # start espeak-ng once
 
 
-@spaces.GPU(duration=20)
+# 60 s is the ceiling, not the charge: quota counts only the time actually used. The first call
+# after a cold start also attaches the GPU and moves the model onto it, which takes a while.
+@spaces.GPU(duration=60)
 def _log_probs(audio, words):
     return pronunciation.phone_log_probs(audio, words, MODEL)
 
@@ -51,4 +53,4 @@ with gr.Blocks(title="Cadence pronunciation checker") as demo:
     result_out = gr.Textbox(label="Result (JSON)", lines=8)
     gr.Button("Check pronunciation").click(assess, [audio_in, words_in], result_out, api_name="assess")
 
-demo.queue(max_size=20).launch()
+demo.queue(max_size=20).launch(show_error=True)  # send real error messages to the caller
