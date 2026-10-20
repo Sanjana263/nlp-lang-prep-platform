@@ -9,7 +9,7 @@ import {
   PencilLineIcon,
   TextAaIcon,
 } from "@phosphor-icons/react/ssr";
-import { Alert, BandFigure, BandScale, Button, Eyebrow, PageHeader, Panel, SectionHeading } from "@/components/ui";
+import { Alert, Badge, BandFigure, BandScale, Button, Eyebrow, PageHeader, Panel, SectionHeading } from "@/components/ui";
 import { api, errorMessage, type EssayResult } from "@/lib/api";
 import { bandTone, formatBand } from "@/lib/bands";
 
@@ -49,7 +49,7 @@ export function WritingView() {
     try {
       const res = await api<EssayResult>("/writing/evaluate", {
         method: "POST",
-        body: { essay, task_type: "task2", prompt_text: PROMPTS[promptIndex] },
+        body: { essay, writing_type: "essay", prompt_text: PROMPTS[promptIndex] },
       });
       setResult(res);
       window.scrollTo({ top: 0 });
@@ -159,8 +159,15 @@ export function WritingView() {
   );
 }
 
+const ISSUE_LABELS: Record<string, string> = {
+  repeated_word: "Repeated word",
+  capitalization: "Capital letter",
+  confused_word: "Word choice",
+  punctuation: "Punctuation",
+};
+
 function ResultView({ result, prompt, onAgain }: { result: EssayResult; prompt: string; onAgain: () => void }) {
-  const { bands, feedback, metrics } = result;
+  const { bands, feedback, metrics, issues, word_suggestions, improved_text, changes } = result;
   return (
     <div className="grid gap-12">
       <PageHeader
@@ -214,6 +221,71 @@ function ResultView({ result, prompt, onAgain }: { result: EssayResult; prompt: 
               </li>
             ))}
           </ul>
+
+          {issues.length > 0 && (
+            <section aria-labelledby="issues" className="mt-10">
+              <SectionHeading>
+                <span id="issues">Mistakes found</span>
+              </SectionHeading>
+              <ul className="grid gap-2">
+                {issues.map((issue, i) => (
+                  <li key={i} className="grid gap-1 border-b border-rule py-3">
+                    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <Badge tone="danger">{ISSUE_LABELS[issue.type] ?? issue.type.replace(/_/g, " ")}</Badge>
+                      <span className="font-mono text-xs text-ink-3">Line {issue.line}</span>
+                      <span className="font-semibold text-red-pen">“{issue.text}”</span>
+                    </p>
+                    <p className="text-ink-2">{issue.message}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {word_suggestions.length > 0 && (
+            <section aria-labelledby="words" className="mt-10">
+              <SectionHeading>
+                <span id="words">Better word choices</span>
+              </SectionHeading>
+              <ul className="grid gap-3">
+                {word_suggestions.map((s) => (
+                  <li key={s.word} className="grid gap-2 rounded-lg border border-rule bg-surface px-4 py-3.5">
+                    <p className="text-ink">
+                      You used <span className="font-semibold">“{s.word}”</span>
+                      <span className="text-ink-3"> {s.count} time{s.count === 1 ? "" : "s"} (first on line {s.line})</span>
+                    </p>
+                    <ul className="grid gap-1.5">
+                      {s.alternatives.map((alt) => (
+                        <li key={alt.word} className="text-sm text-ink-2">
+                          <span className="font-semibold text-accent">{alt.word}</span>: {alt.meaning}
+                          <span className="block text-ink-3 italic">{alt.example}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {improved_text && changes.length > 0 && (
+            <section aria-labelledby="improved" className="mt-10">
+              <SectionHeading>
+                <span id="improved">Improved version</span>
+              </SectionHeading>
+              <Panel className="p-5 sm:p-6">
+                <p className="font-display text-lg leading-8 whitespace-pre-line text-ink">{improved_text}</p>
+              </Panel>
+              <ul className="mt-3 grid gap-1 text-sm text-ink-2">
+                {changes.map((c) => (
+                  <li key={c} className="flex gap-2">
+                    <CheckCircleIcon aria-hidden size={16} className="mt-0.5 shrink-0 text-success" />
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </section>
 
         <section aria-labelledby="stats">

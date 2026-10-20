@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
+from datetime import datetime
 from typing import Dict, List, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 WritingType = Literal["essay", "letter", "report", "graph_description"]
 
@@ -11,10 +13,14 @@ MIN_WORDS: Dict[str, int] = {
     "graph_description": 150,
 }
 
+# IELTS Task 1 is a letter (General) or a report / graph description (Academic); Task 2 is an essay.
+TASK_OF: Dict[str, str] = {"essay": "task2", "letter": "task1", "report": "task1", "graph_description": "task1"}
+
 
 class EssayRequest(BaseModel):
     essay: str = Field(..., min_length=50, description="The text written by the learner")
     writing_type: WritingType = Field(default="essay", description="essay, letter, report or graph_description")
+    prompt_text: str = Field(default="", description="The question the text answers")
 
 
 class EssayMetrics(BaseModel):
@@ -55,6 +61,7 @@ class WordSuggestion(BaseModel):
 
 
 class EssayResult(BaseModel):
+    submission_id: int
     writing_type: str
     min_words: int
     metrics: EssayMetrics
@@ -64,3 +71,17 @@ class EssayResult(BaseModel):
     improved_text: str
     changes: List[str]
     feedback: List[str]
+
+
+class WritingSubmissionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    writing_id: int
+    task_type: str
+    word_count: int
+    task_response_score: float | None
+    grammar_score: float | None
+    coherence_score: float | None
+    vocabulary_score: float | None
+    status: str
+    submitted_at: datetime

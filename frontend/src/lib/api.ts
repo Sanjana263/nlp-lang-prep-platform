@@ -140,10 +140,30 @@ export interface BandScores {
   overall: number;
 }
 
+export interface WritingIssue {
+  type: string; // repeated_word, capitalization, confused_word, punctuation
+  line: number;
+  text: string;
+  message: string;
+}
+
+export interface WordSuggestion {
+  word: string;
+  count: number;
+  line: number;
+  alternatives: { word: string; meaning: string; example: string }[];
+}
+
 export interface EssayResult {
   submission_id: number;
+  writing_type: "essay" | "letter" | "report" | "graph_description";
+  min_words: number;
   metrics: EssayMetrics;
   bands: BandScores;
+  issues: WritingIssue[];
+  word_suggestions: WordSuggestion[];
+  improved_text: string;
+  changes: string[];
   feedback: string[];
 }
 
