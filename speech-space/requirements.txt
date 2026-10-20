@@ -1,0 +1,7 @@
+# Hugging Face ZeroGPU Space (gradio and spaces are provided by the Space runtime)
+torch==2.13.0
+transformers==5.20.2
+phonemizer==3.4.0
+espeakng-loader==0.2.4
+av==19.0.1
+numpy
