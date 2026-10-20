@@ -10,8 +10,8 @@ Deliberate additions beyond the SRS (marked "ADDED") - see notes in chat:
 from datetime import datetime
 
 from sqlalchemy import (
-    CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text,
-    UniqueConstraint, func,
+    Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text,
+    UniqueConstraint, func, true,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -66,6 +66,22 @@ class VocabularyWord(Base):
     meaning: Mapped[str] = mapped_column(Text)
     example_sentence: Mapped[str] = mapped_column(Text)
     difficulty_level: Mapped[str] = mapped_column(String(20))  # Beginner / Intermediate / Advanced
+
+
+class WritingPrompt(Base):
+    """Writing question bank (ADDED: the SRS has no writing-prompt table)."""
+    __tablename__ = "writing_prompts"
+    __table_args__ = (
+        CheckConstraint("writing_type IN ('essay','letter','report','graph_description')", name="ck_writing_prompts_type"),
+    )
+
+    prompt_id: Mapped[int] = mapped_column(primary_key=True)
+    writing_type: Mapped[str] = mapped_column(String(20), default="essay", server_default="essay", index=True)
+    topic: Mapped[str] = mapped_column(String(50))
+    question_type: Mapped[str] = mapped_column(String(30))   # opinion / discuss_both / problem_solution / ...
+    prompt_text: Mapped[str] = mapped_column(Text, unique=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=now)
 
 
 # ----------------------------------------------------------- submissions

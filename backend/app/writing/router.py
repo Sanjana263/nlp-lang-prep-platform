@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -6,14 +6,29 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import get_current_user
 from app.db.session import get_db
-from app.models import User, WritingSubmission
+from app.models import User, WritingPrompt, WritingSubmission
 from app.writing.analyzer import analyze_essay
 from app.writing.checks import run_all_checks, structure_tips
-from app.writing.schemas import MIN_WORDS, TASK_OF, EssayRequest, EssayResult, WritingSubmissionSummary
+from app.writing.schemas import (
+    MIN_WORDS, TASK_OF, EssayRequest, EssayResult, WritingPromptOut, WritingSubmissionSummary, WritingType,
+)
 from app.writing.scorer import score_essay
 from app.writing.vocabulary import find_suggestions, rewrite_text
 
 router = APIRouter(prefix="/writing", tags=["writing"])
+
+
+@router.get("/prompts", response_model=List[WritingPromptOut])
+def prompts(
+    writing_type: Optional[WritingType] = None,
+    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The writing question bank (active questions only), optionally filtered by writing type."""
+    query = select(WritingPrompt).where(WritingPrompt.is_active.is_(True))
+    if writing_type:
+        query = query.where(WritingPrompt.writing_type == writing_type)
+    return list(db.scalars(query.order_by(WritingPrompt.prompt_id)))
 
 
 @router.post("/evaluate", response_model=EssayResult)

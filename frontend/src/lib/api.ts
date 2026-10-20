@@ -167,6 +167,14 @@ export interface EssayResult {
   feedback: string[];
 }
 
+export interface WritingPrompt {
+  prompt_id: number;
+  writing_type: "essay" | "letter" | "report" | "graph_description";
+  topic: string;
+  question_type: string;
+  prompt_text: string;
+}
+
 export interface WritingSubmissionSummary {
   writing_id: number;
   task_type: string;

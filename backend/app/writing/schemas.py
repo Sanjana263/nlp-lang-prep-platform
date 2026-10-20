@@ -85,3 +85,13 @@ class WritingSubmissionSummary(BaseModel):
     vocabulary_score: float | None
     status: str
     submitted_at: datetime
+
+
+class WritingPromptOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    prompt_id: int
+    writing_type: str
+    topic: str
+    question_type: str
+    prompt_text: str

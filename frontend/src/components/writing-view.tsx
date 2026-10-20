@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowsClockwiseIcon,
   CheckCircleIcon,
@@ -10,16 +10,16 @@ import {
   TextAaIcon,
 } from "@phosphor-icons/react/ssr";
 import { Alert, Badge, BandFigure, BandScale, Button, Eyebrow, PageHeader, Panel, SectionHeading } from "@/components/ui";
-import { api, errorMessage, type EssayResult } from "@/lib/api";
+import { api, errorMessage, type EssayResult, type WritingPrompt } from "@/lib/api";
 import { bandTone, formatBand } from "@/lib/bands";
 
-// Static for now: the SRS has no writing-prompt table yet.
-const PROMPTS = [
-  "Some people believe that university education should be free for all students. Discuss both views and give your opinion.",
-  "Some people think children should start learning a foreign language at primary school. To what extent do you agree or disagree?",
-  "Many cities now have more cars than ever. What problems does this cause, and what measures could be taken to solve them?",
-  "Some people say that technology has made our lives more complicated. Do the advantages of technology outweigh the disadvantages?",
-];
+// Questions live in the writing_prompts table (GET /writing/prompts); load them with `npm run seed-writing`.
+const randomIndex = (length: number, not?: number) => {
+  if (length <= 1) return 0;
+  let i = Math.floor(Math.random() * length);
+  while (i === not) i = Math.floor(Math.random() * length);
+  return i;
+};
 
 const MIN_CHARS = 50; // backend rule (EssayRequest.min_length)
 const TARGET_WORDS = 250; // IELTS Task 2 minimum
@@ -33,23 +33,43 @@ const CRITERIA: { key: "task_response" | "coherence" | "vocabulary" | "grammar";
 ];
 
 export function WritingView() {
+  const [prompts, setPrompts] = useState<WritingPrompt[] | null>(null);
   const [promptIndex, setPromptIndex] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [essay, setEssay] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<EssayResult | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    api<WritingPrompt[]>("/writing/prompts?writing_type=essay")
+      .then((list) => {
+        if (cancelled) return;
+        setPrompts(list);
+        setPromptIndex(randomIndex(list.length));
+      })
+      .catch((e) => {
+        if (!cancelled) setLoadError(errorMessage(e));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const prompt = prompts?.[promptIndex] ?? null;
   const words = countWords(essay);
   const tooShort = essay.trim().length < MIN_CHARS;
   const progress = Math.min(1, words / TARGET_WORDS);
 
   async function submit() {
+    if (!prompt) return;
     setError(null);
     setBusy(true);
     try {
       const res = await api<EssayResult>("/writing/evaluate", {
         method: "POST",
-        body: { essay, writing_type: "essay", prompt_text: PROMPTS[promptIndex] },
+        body: { essay, writing_type: "essay", prompt_text: prompt.prompt_text },
       });
       setResult(res);
       window.scrollTo({ top: 0 });
@@ -66,7 +86,20 @@ export function WritingView() {
     setError(null);
   }
 
-  if (result) return <ResultView result={result} prompt={PROMPTS[promptIndex]} onAgain={reset} />;
+  if (result) return <ResultView result={result} prompt={prompt?.prompt_text ?? ""} onAgain={reset} />;
+
+  if (!prompt) {
+    return (
+      <div className="grid gap-10">
+        <PageHeader eyebrow="Writing · Task 2" title="Write your essay" description="Loading your question…" />
+        {loadError ? (
+          <Alert>{loadError}</Alert>
+        ) : prompts && prompts.length === 0 ? (
+          <Alert>No writing questions are available yet. Ask an admin to load the question bank.</Alert>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-10">
@@ -79,10 +112,8 @@ export function WritingView() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
         <aside className="grid gap-5 lg:sticky lg:top-8">
           <div>
-            <Eyebrow>
-              Question {promptIndex + 1} of {PROMPTS.length}
-            </Eyebrow>
-            <p className="mt-3 font-display text-xl leading-8 text-ink">{PROMPTS[promptIndex]}</p>
+            <Eyebrow>Question · {prompt.topic}</Eyebrow>
+            <p className="mt-3 font-display text-xl leading-8 text-ink">{prompt.prompt_text}</p>
           </div>
           <ul className="grid gap-2 border-y border-rule py-4 text-sm text-ink-2">
             <li className="flex items-center gap-2.5">
@@ -96,7 +127,7 @@ export function WritingView() {
             variant="secondary"
             size="sm"
             disabled={busy}
-            onClick={() => setPromptIndex((i) => (i + 1) % PROMPTS.length)}
+            onClick={() => setPromptIndex((i) => randomIndex(prompts?.length ?? 0, i))}
             className="justify-self-start"
           >
             <ArrowsClockwiseIcon aria-hidden size={16} /> Try a different question
