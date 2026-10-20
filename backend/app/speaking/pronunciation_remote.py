@@ -22,7 +22,8 @@ def _client(space: str, token: str):
         if space not in _clients:
             from gradio_client import Client
 
-            _clients[space] = Client(space, token=token or None, verbose=False)
+            # A sleeping Space can take a minute or two to answer its first request.
+            _clients[space] = Client(space, token=token or None, verbose=False, httpx_kwargs={"timeout": 180})
     return _clients[space]
 
 
@@ -33,10 +34,23 @@ def assess(audio_path: str, words: list[Word], space: str, token: str) -> Pronun
 
     payload = json.dumps([{"text": w.text, "start": w.start, "end": w.end, "filler": w.filler} for w in words])
     try:
-        raw = _client(space, token).predict(handle_file(audio_path), payload, api_name="/assess")
+        try:
+            raw = _client(space, token).predict(handle_file(audio_path), payload, api_name="/assess")
+        except Exception as first:
+            # The first GPU call after the Space starts or wakes often runs out of time while
+            # ZeroGPU sets the GPU up ("GPU task aborted"); the next call is quick. Retry once.
+            if "aborted" not in str(first).lower():
+                raise
+            log.warning("Pronunciation Space call aborted (cold GPU); retrying once")
+            raw = _client(space, token).predict(handle_file(audio_path), payload, api_name="/assess")
     except Exception as exc:  # gradio_client raises plain exceptions for queue, quota and wake-up errors
         log.exception("Pronunciation Space call failed")
         text = str(exc).lower()
+        if "repository not found" in text or "404" in text:
+            raise SpeechServiceError(
+                f"The pronunciation checker '{space}' doesn't exist yet. Deploy it with "
+                "scripts.deploy_speech_space (see README), or fix HF_SPEECH_SPACE in backend/.env."
+            ) from exc
         if "quota" in text:
             raise SpeechServiceError("Today's free pronunciation-check limit is used up. Your recording is saved; try scoring it again tomorrow.") from exc
         raise SpeechServiceError("The pronunciation checker is starting up or busy. Your recording is saved; try scoring it again in a minute.") from exc

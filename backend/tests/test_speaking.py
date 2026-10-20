@@ -231,3 +231,22 @@ def test_cloud_pipeline_uses_groq_and_space(monkeypatch):
     monkeypatch.setattr(pronunciation_remote, "assess", lambda path, w, space, token: PronunciationResult(0.9, []))
     r = pipeline.analyse_recording("a.webm", np.zeros(16000, dtype=np.float32), 1, "Where is your hometown?")
     assert r["transcript"].startswith("I really") and 1 <= r["bands"]["overall"] <= 9
+
+
+def test_space_call_retries_once_after_cold_gpu_abort(monkeypatch, tmp_path):
+    from app.speaking import pronunciation_remote
+
+    calls = []
+
+    class FakeClient:
+        def predict(self, *a, **k):
+            calls.append(1)
+            if len(calls) == 1:
+                raise RuntimeError("GPU task aborted")
+            return '{"accuracy": 0.9, "words": [], "substitutions": {}}'
+
+    monkeypatch.setattr(pronunciation_remote, "_client", lambda space, token: FakeClient())
+    f = tmp_path / "a.webm"
+    f.write_bytes(b"x")
+    assert pronunciation_remote.assess(str(f), [], "me/space", "hf_x").accuracy == 0.9
+    assert len(calls) == 2
