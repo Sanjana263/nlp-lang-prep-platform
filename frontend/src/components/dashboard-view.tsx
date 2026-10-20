@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowRightIcon,
@@ -22,14 +23,13 @@ import {
   SectionHeading,
   Skeleton,
 } from "@/components/ui";
-import { api, errorMessage, type WritingSubmissionSummary } from "@/lib/api";
+import { api, errorMessage, type SpeakingSubmissionSummary, type WritingSubmissionSummary } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { bandDescriptor, bandTone, formatBand, roundBand, writingOverall } from "@/lib/bands";
 
-const OTHER_SKILLS = [
+const IN_DEVELOPMENT = [
   { name: "Reading", Icon: BookOpenTextIcon },
   { name: "Listening", Icon: HeadphonesIcon },
-  { name: "Speaking", Icon: MicrophoneIcon },
 ];
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -37,13 +37,20 @@ const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
 export function DashboardView() {
   const { user } = useAuth();
   const [subs, setSubs] = useState<WritingSubmissionSummary[] | null>(null);
+  const [speaking, setSpeaking] = useState<SpeakingSubmissionSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api<WritingSubmissionSummary[]>("/writing/submissions")
       .then(setSubs)
       .catch((e) => setError(errorMessage(e)));
+    api<SpeakingSubmissionSummary[]>("/speaking/submissions")
+      .then(setSpeaking)
+      .catch(() => setSpeaking([]));
   }, []);
+
+  const spoken = (speaking ?? []).filter((s) => s.status === "completed" && s.overall_band !== null);
+  const speakingAverage = spoken.length ? roundBand(spoken.reduce((a, s) => a + s.overall_band!, 0) / spoken.length) : null;
 
   const scored = (subs ?? [])
     .map((s) => ({ s, band: writingOverall(s) }))
@@ -108,7 +115,24 @@ export function DashboardView() {
       <section aria-labelledby="other-skills">
         <h2 id="other-skills" className="sr-only">Other skills</h2>
         <ul className="grid gap-3 sm:grid-cols-3">
-          {OTHER_SKILLS.map(({ name, Icon }) => (
+          <li>
+            <Link
+              href="/speaking"
+              className="flex h-full items-center gap-3 rounded-xl border border-rule bg-surface px-4 py-4 transition-colors duration-150 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <MicrophoneIcon aria-hidden size={22} className="text-accent" />
+              <span className="min-w-0">
+                <span className="block font-semibold text-ink">Speaking</span>
+                <span className="block text-sm text-ink-3">
+                  {speaking === null ? "Loading…" : spoken.length === 0 ? "Record your first answer" : `${spoken.length} answer${spoken.length === 1 ? "" : "s"} · average band`}
+                </span>
+              </span>
+              <span className={`ml-auto font-display text-3xl font-semibold tabular-nums ${speakingAverage !== null ? bandTone(speakingAverage) : "text-ink-3"}`}>
+                {formatBand(speakingAverage)}
+              </span>
+            </Link>
+          </li>
+          {IN_DEVELOPMENT.map(({ name, Icon }) => (
             <li key={name} className="flex items-center gap-3 rounded-xl border border-dashed border-rule-strong px-4 py-4">
               <Icon aria-hidden size={22} className="text-ink-3" />
               <span className="font-semibold text-ink-2">{name}</span>

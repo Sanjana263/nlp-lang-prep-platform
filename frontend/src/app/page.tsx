@@ -8,7 +8,7 @@ const SKILLS: { name: string; text: string; live: boolean; icon: ReactNode }[] =
   { name: "Writing", text: "Task 2 essays scored on all four IELTS criteria, with feedback on what held the band back.", live: true, icon: <PencilLineIcon aria-hidden size={24} /> },
   { name: "Reading", text: "Timed passages with automatic scoring and a record of the question types you miss.", live: false, icon: <BookOpenTextIcon aria-hidden size={24} /> },
   { name: "Listening", text: "Clips in British, American and Australian accents, scored against the transcript.", live: false, icon: <HeadphonesIcon aria-hidden size={24} /> },
-  { name: "Speaking", text: "Record an answer and get pronunciation, fluency and pace scores, plus a filler-word count.", live: false, icon: <MicrophoneIcon aria-hidden size={24} /> },
+  { name: "Speaking", text: "Record an answer and get a band for all four speaking criteria, your transcript, and the exact sounds to practise.", live: true, icon: <MicrophoneIcon aria-hidden size={24} /> },
 ];
 
 const STEPS = [

@@ -20,13 +20,13 @@ import { useAuth } from "@/lib/auth";
 const NAV = [
   { href: "/dashboard", label: "Dashboard", Icon: SquaresFourIcon },
   { href: "/writing", label: "Writing", Icon: PencilLineIcon },
+  { href: "/speaking", label: "Speaking", Icon: MicrophoneIcon },
   { href: "/settings", label: "Profile", Icon: UserCircleIcon },
 ];
 // Shown, not hidden, so students know what is coming (and why they can't open it yet).
 const IN_DEVELOPMENT = [
   { label: "Reading", Icon: BookOpenTextIcon },
   { label: "Listening", Icon: HeadphonesIcon },
-  { label: "Speaking", Icon: MicrophoneIcon },
   { label: "Vocabulary", Icon: CardsIcon },
 ];
 
@@ -128,7 +128,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Phone bottom navigation */}
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-rule bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-rule bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {NAV.map(({ href, label, Icon }) => (
           <Link
