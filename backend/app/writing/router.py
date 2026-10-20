@@ -17,10 +17,12 @@ def evaluate_essay(request: EssayRequest):
     improved_text, changes = rewrite_text(request.essay)
     bands, feedback = score_essay(metrics, min_words, len(issues))
     feedback += structure_tips(request.essay, request.writing_type)
+    
     if issues:
         feedback.append(f"{len(issues)} mistake(s) found. See the 'issues' list.")
     if not feedback:
         feedback.append("Good structure. Keep practising with different topics.")
+       
     return EssayResult(writing_type=request.writing_type, min_words=min_words,
                        metrics=metrics, bands=bands, issues=issues,
                        word_suggestions=word_suggestions, improved_text=improved_text,
