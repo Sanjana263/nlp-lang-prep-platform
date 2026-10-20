@@ -20,6 +20,21 @@ bcrypt==5.0.0
 # (needed for coherence/vocabulary similarity). Installed like any other package.
 spacy==3.8.16
 en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl
+wordfreq==3.1.1             # word frequencies for vocabulary range
+
+# Speaking assessment (FR-5). By default the speech models run in the cloud for free
+# (SPEECH_MODE=cloud): speech-to-text on Groq, pronunciation on our Hugging Face Space.
+python-multipart==0.0.32    # audio uploads
+av==19.0.1                  # decodes browser recordings; bundles FFmpeg
+groq==1.7.0                 # speech-to-text API
+gradio_client==2.7.2        # calls the pronunciation Space (also provides huggingface_hub)
+
+# Only for SPEECH_MODE=local (everything on this machine; ~1.5 GB of packages plus ~3 GB of
+# models, and heavy CPU use). Install with:
+#   pip install faster-whisper==1.2.1 torch==2.14.1 transformers==5.20.2 phonemizer==3.4.0 espeakng-loader==0.2.4
+
+# Optional examiner feedback (only used when ANTHROPIC_API_KEY is set)
+anthropic==1.15.0
 
 # Tests
 pytest==9.1.1
