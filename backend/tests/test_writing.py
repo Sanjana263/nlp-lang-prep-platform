@@ -41,3 +41,20 @@ def test_analysis_failure_keeps_submission(client, auth_headers, db_session, mon
     assert r.status_code == 500
     sub = db_session.scalar(select(WritingSubmission))
     assert sub is not None and sub.status == "failed"                                   # NFR-3.2
+
+
+def test_result_includes_checks_suggestions_and_rewrite(client, auth_headers, db_session):
+    text = ESSAY + " i think this this is very good and very important for students."
+    body = client.post("/writing/evaluate", headers=auth_headers, json={"essay": text}).json()
+    assert body["writing_type"] == "essay" and body["min_words"] == 250
+    assert body["issues"] and body["improved_text"]
+    assert {"word_suggestions", "changes", "feedback"} <= body.keys()
+    sub = db_session.scalar(select(WritingSubmission))
+    assert sub.mistake_patterns_json == body["issues"]                                  # FR-3.5
+
+
+def test_letter_is_saved_as_task_1(client, auth_headers, db_session):
+    body = client.post("/writing/evaluate", headers=auth_headers,
+                       json={"essay": ESSAY, "writing_type": "letter"}).json()
+    assert body["min_words"] == 150
+    assert db_session.scalar(select(WritingSubmission)).task_type == "task1"
