@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthCard } from "@/components/auth-card";
-import { Button, ErrorAlert, Field, SelectField, Spinner } from "@/components/ui";
+import { PasswordField } from "@/components/password-field";
+import { Alert, Button, Field, TextLink } from "@/components/ui";
+import { ExamPicker } from "@/components/exam-picker";
 import { errorMessage, type TargetExam } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -36,30 +37,22 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthCard title="Create your account" subtitle="Tell us which exam you are preparing for.">
-      <form onSubmit={onSubmit} className="space-y-4">
-        {error && <ErrorAlert>{error}</ErrorAlert>}
+    <AuthCard title="Create your account" subtitle="Free to use. Pick the exam you are preparing for.">
+      <form onSubmit={onSubmit} className="grid gap-5">
+        {error && <Alert>{error}</Alert>}
         <Field id="name" label="Full name" autoComplete="name" required maxLength={100} value={fullName}
           onChange={(e) => setFullName(e.target.value)} />
         <Field id="email" label="Email" type="email" autoComplete="email" required value={email}
           onChange={(e) => setEmail(e.target.value)} />
-        <Field id="password" label="Password (at least 8 characters)" type="password" autoComplete="new-password"
+        <PasswordField id="password" label="Password" hint="At least 8 characters." autoComplete="new-password"
           required minLength={8} maxLength={72} value={password} onChange={(e) => setPassword(e.target.value)} />
-        <SelectField id="exam" label="Target exam" value={targetExam}
-          onChange={(e) => setTargetExam(e.target.value as TargetExam)}>
-          <option value="IELTS">IELTS</option>
-          <option value="TOEFL">TOEFL</option>
-          <option value="PTE">PTE</option>
-        </SelectField>
-        <Button type="submit" className="w-full gap-2" disabled={busy}>
-          {busy && <Spinner />} Create account
+        <ExamPicker value={targetExam} onChange={setTargetExam} />
+        <Button type="submit" loading={busy} className="mt-1 w-full">
+          {busy ? "Creating account…" : "Create account"}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-zinc-500">
-        Already registered?{" "}
-        <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-          Log in
-        </Link>
+      <p className="mt-8 text-ink-2">
+        Already registered? <TextLink href="/login">Log in</TextLink>
       </p>
     </AuthCard>
   );

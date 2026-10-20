@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Button, Card, ErrorAlert, Field, SelectField, Spinner } from "@/components/ui";
+import { ExamPicker } from "@/components/exam-picker";
+import { Alert, Button, Field, PageHeader, Panel } from "@/components/ui";
 import { api, errorMessage, type TargetExam, type User } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -12,6 +13,8 @@ export function SettingsView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const dirty = fullName !== user?.full_name || targetExam !== user?.target_exam;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -32,31 +35,30 @@ export function SettingsView() {
     }
   }
 
+  const memberSince = user
+    ? new Date(user.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-      <Card className="max-w-lg">
-        <form onSubmit={onSubmit} className="space-y-4">
-          {error && <ErrorAlert>{error}</ErrorAlert>}
-          {saved && (
-            <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
-              Profile updated.
-            </p>
-          )}
-          <Field id="name" label="Full name" required maxLength={100} value={fullName}
+    <div className="grid gap-10">
+      <PageHeader eyebrow="Account" title="Profile" description={`Member since ${memberSince}.`} />
+
+      <Panel className="max-w-xl p-6 sm:p-8">
+        <form onSubmit={onSubmit} className="grid gap-5">
+          {error && <Alert>{error}</Alert>}
+          <Field id="name" label="Full name" autoComplete="name" required maxLength={100} value={fullName}
             onChange={(e) => { setFullName(e.target.value); setSaved(false); }} />
-          <Field id="email" label="Email" value={user?.email ?? ""} disabled readOnly />
-          <SelectField id="exam" label="Target exam" value={targetExam}
-            onChange={(e) => { setTargetExam(e.target.value as TargetExam); setSaved(false); }}>
-            <option value="IELTS">IELTS</option>
-            <option value="TOEFL">TOEFL</option>
-            <option value="PTE">PTE</option>
-          </SelectField>
-          <Button type="submit" disabled={busy} className="gap-2">
-            {busy && <Spinner />} Save changes
-          </Button>
+          <Field id="email" label="Email" value={user?.email ?? ""} readOnly disabled
+            hint="Your email is your login, so it can't be changed here." />
+          <ExamPicker value={targetExam} onChange={(v) => { setTargetExam(v); setSaved(false); }} />
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <Button type="submit" loading={busy} disabled={!dirty}>
+              {busy ? "Saving…" : "Save changes"}
+            </Button>
+            {saved && <Alert tone="success">Profile saved.</Alert>}
+          </div>
         </form>
-      </Card>
+      </Panel>
     </div>
   );
 }

@@ -19,9 +19,49 @@ export function writingOverall(s: {
   return roundBand((parts as number[]).reduce((a, b) => a + b, 0) / 4);
 }
 
+export type BandTier = "strong" | "good" | "fair" | "weak";
+
+export function bandTier(score: number): BandTier {
+  if (score >= 7) return "strong";
+  if (score >= 6) return "good";
+  if (score >= 5) return "fair";
+  return "weak";
+}
+
+/** Text colour class for a band score (tokens from globals.css). */
 export function bandTone(score: number): string {
-  if (score >= 7) return "text-emerald-600 dark:text-emerald-400";
-  if (score >= 6) return "text-indigo-600 dark:text-indigo-400";
-  if (score >= 5) return "text-amber-600 dark:text-amber-400";
-  return "text-rose-600 dark:text-rose-400";
+  return {
+    strong: "text-band-strong",
+    good: "text-band-good",
+    fair: "text-band-fair",
+    weak: "text-band-weak",
+  }[bandTier(score)];
+}
+
+/** Fill colour class for bars and markers. */
+export function bandFill(score: number): string {
+  return {
+    strong: "bg-band-strong",
+    good: "bg-band-good",
+    fair: "bg-band-fair",
+    weak: "bg-band-weak",
+  }[bandTier(score)];
+}
+
+/** Official IELTS band descriptor names, so a number always comes with words. */
+const DESCRIPTORS = [
+  "Did not attempt",
+  "Non-user",
+  "Intermittent user",
+  "Extremely limited user",
+  "Limited user",
+  "Modest user",
+  "Competent user",
+  "Good user",
+  "Very good user",
+  "Expert user",
+];
+
+export function bandDescriptor(score: number): string {
+  return DESCRIPTORS[Math.max(0, Math.min(9, Math.floor(score)))];
 }

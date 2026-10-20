@@ -3,15 +3,32 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import {
+  BookOpenTextIcon,
+  CardsIcon,
+  HeadphonesIcon,
+  MicrophoneIcon,
+  PencilLineIcon,
+  SignOutIcon,
+  SquaresFourIcon,
+  UserCircleIcon,
+} from "@phosphor-icons/react/ssr";
+import { Brand } from "@/components/brand";
 import { Spinner } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 
 const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/writing", label: "Writing" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", label: "Dashboard", Icon: SquaresFourIcon },
+  { href: "/writing", label: "Writing", Icon: PencilLineIcon },
+  { href: "/speaking", label: "Speaking", Icon: MicrophoneIcon },
+  { href: "/settings", label: "Profile", Icon: UserCircleIcon },
 ];
-const SOON = ["Reading", "Listening", "Speaking", "Vocabulary"];
+// Shown, not hidden, so students know what is coming (and why they can't open it yet).
+const IN_DEVELOPMENT = [
+  { label: "Reading", Icon: BookOpenTextIcon },
+  { label: "Listening", Icon: HeadphonesIcon },
+  { label: "Vocabulary", Icon: CardsIcon },
+];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, status, logout } = useAuth();
@@ -25,57 +42,106 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   if (status !== "authenticated" || !user) {
     return (
-      <div className="flex flex-1 items-center justify-center text-zinc-500">
-        <Spinner />
+      <div role="status" className="flex flex-1 items-center justify-center gap-3 text-ink-2">
+        <Spinner /> Loading your workspace…
       </div>
     );
   }
 
-  const linkClass = (href: string) =>
-    `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-      pathname === href
-        ? "bg-indigo-600 text-white"
-        : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-    }`;
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const initials = user.full_name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="flex flex-1 flex-col md:flex-row">
-      <aside className="border-b border-zinc-200 p-4 md:w-56 md:border-r md:border-b-0 dark:border-zinc-800">
-        <div className="flex items-center justify-between md:block">
-          <Link href="/dashboard" className="text-lg font-semibold tracking-tight">
-            Cadence
-          </Link>
-          <button onClick={logout} className="text-sm text-zinc-500 hover:underline md:mt-0 md:hidden">
-            Log out
-          </button>
-        </div>
-        <nav className="mt-3 flex gap-1 overflow-x-auto md:mt-8 md:flex-col" aria-label="Main">
-          {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className={linkClass(n.href)}>
-              {n.label}
-            </Link>
-          ))}
-          {SOON.map((label) => (
-            <span
-              key={label}
-              className="hidden items-center justify-between rounded-lg px-3 py-2 text-sm text-zinc-400 md:flex"
+      {/* Desktop / tablet sidebar */}
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-rule bg-surface md:flex">
+        <div className="sticky top-0 flex h-dvh flex-col px-4 py-6">
+          <Brand href="/dashboard" className="px-2" />
+
+          <nav aria-label="Main" className="mt-10 grid gap-1">
+            {NAV.map(({ href, label, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isActive(href) ? "page" : undefined}
+                className="flex min-h-11 items-center gap-3 rounded-lg px-3 font-semibold text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-accent aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent"
+              >
+                <Icon aria-hidden size={20} weight={isActive(href) ? "fill" : "regular"} />
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mt-8">
+            <p className="px-3 font-mono text-[11px] font-medium tracking-[0.12em] text-ink-3 uppercase">In development</p>
+            <ul className="mt-2 grid gap-0.5" aria-label="Skills in development">
+              {IN_DEVELOPMENT.map(({ label, Icon }) => (
+                <li key={label} className="flex min-h-9 items-center gap-3 px-3 text-ink-3">
+                  <Icon aria-hidden size={20} />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-auto border-t border-rule pt-4">
+            <div className="flex items-center gap-3 px-2">
+              <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-semibold text-ink-2">
+                {initials}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-ink" title={user.full_name}>{user.full_name}</p>
+                <p className="truncate text-sm text-ink-3" title={user.email}>{user.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="mt-3 flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
             >
-              {label}
-              <span className="text-[10px] uppercase tracking-wide">Soon</span>
-            </span>
-          ))}
-        </nav>
-        <div className="mt-8 hidden md:block">
-          <p className="truncate text-sm font-medium">{user.full_name}</p>
-          <p className="truncate text-xs text-zinc-500">{user.email}</p>
-          <button onClick={logout} className="mt-3 text-sm text-zinc-500 hover:underline">
-            Log out
-          </button>
+              <SignOutIcon aria-hidden size={20} /> Log out
+            </button>
+          </div>
         </div>
       </aside>
-      <main className="flex-1 px-4 py-8 md:px-10">
-        <div className="mx-auto max-w-4xl">{children}</div>
+
+      {/* Phone top bar */}
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-rule bg-surface/95 px-4 py-3 backdrop-blur md:hidden">
+        <Brand href="/dashboard" />
+        <button
+          onClick={logout}
+          aria-label="Log out"
+          className="grid size-11 cursor-pointer place-items-center rounded-lg text-ink-2 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <SignOutIcon aria-hidden size={22} />
+        </button>
+      </header>
+
+      <main id="main" className="min-w-0 flex-1 px-4 pt-8 pb-28 sm:px-8 md:pt-12 md:pb-16 lg:px-12">
+        <div className="mx-auto max-w-5xl">{children}</div>
       </main>
+
+      {/* Phone bottom navigation */}
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-rule bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {NAV.map(({ href, label, Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            aria-current={isActive(href) ? "page" : undefined}
+            className="flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-semibold text-ink-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent aria-[current=page]:text-accent"
+          >
+            <Icon aria-hidden size={24} weight={isActive(href) ? "fill" : "regular"} />
+            {label}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }

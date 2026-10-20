@@ -80,3 +80,11 @@ if (/USER:PASSWORD|ep-xxxx/.test(readFileSync(envPath, "utf8"))) {
   run(venvPython, ["-m", "alembic", "upgrade", "head"], backend);
   console.log("\n\x1b[32mSetup complete.\x1b[0m Start everything with:  npm run dev");
 }
+
+// 4. Speaking practice needs two free cloud keys (optional for everything else)
+if (!/^GROQ_API_KEY=\S/m.test(readFileSync(envPath, "utf8"))) {
+  console.log(
+    "\nFor speaking practice, add GROQ_API_KEY, HF_TOKEN and HF_SPEECH_SPACE to backend/.env\n" +
+      '(free; see "Speaking setup" in README.md). Everything else works without them.'
+  );
+}

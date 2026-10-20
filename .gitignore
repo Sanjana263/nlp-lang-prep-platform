@@ -12,3 +12,8 @@ __pycache__/
 *.db
 tsconfig.tsbuildinfo
 next-env.d.ts
+.claude/
+backend/venv312/
+# learner recordings (speaking assessment)
+backend/uploads/
+backend/tests/.uploads/

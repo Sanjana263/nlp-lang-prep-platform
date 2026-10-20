@@ -4,6 +4,7 @@ import { SettingsView } from "@/components/settings-view";
 // dev check to validate. (`instant` can only be exported from a Server Component, hence
 // this thin wrapper around the client view.)
 export const instant = false;
+export const metadata = { title: "Profile" };
 
 export default function SettingsPage() {
   return <SettingsView />;

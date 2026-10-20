@@ -94,13 +94,21 @@ class SpeakingSubmission(Base):
     speaking_id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), index=True)
     part_number: Mapped[int] = mapped_column(Integer)
+    prompt_id: Mapped[str | None] = mapped_column(String(40))          # ADDED: which question
+    prompt_text: Mapped[str | None] = mapped_column(Text)             # ADDED
     audio_file_path: Mapped[str] = mapped_column(String(255))
+    duration_seconds: Mapped[float | None] = mapped_column(Float)     # ADDED
     transcribed_text: Mapped[str | None] = mapped_column(Text)
     pronunciation_score: Mapped[float | None] = mapped_column(Float)
     fluency_score: Mapped[float | None] = mapped_column(Float)
-    pace_score: Mapped[float | None] = mapped_column(Float)
+    pace_score: Mapped[float | None] = mapped_column(Float)            # words per minute
+    lexical_score: Mapped[float | None] = mapped_column(Float)         # ADDED (IELTS criterion)
+    grammar_score: Mapped[float | None] = mapped_column(Float)         # ADDED (IELTS criterion)
+    overall_band: Mapped[float | None] = mapped_column(Float)          # ADDED
     filler_word_count: Mapped[int | None] = mapped_column(Integer)
     mistake_patterns_json: Mapped[list | None] = mapped_column(JSONB)
+    analysis_json: Mapped[dict | None] = mapped_column(JSONB)          # ADDED: words, metrics, feedback
+    error_message: Mapped[str | None] = mapped_column(Text)            # ADDED: NFR-3.2, shown to the user
     status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")  # ADDED
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=now)
 

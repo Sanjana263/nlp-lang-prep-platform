@@ -1,13 +1,26 @@
 from datetime import datetime
-from typing import List
+from typing import Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+WritingType = Literal["essay", "letter", "report", "graph_description"]
+
+# Minimum words IELTS expects for each writing type
+MIN_WORDS: Dict[str, int] = {
+    "essay": 250,
+    "letter": 150,
+    "report": 150,
+    "graph_description": 150,
+}
+
+# IELTS Task 1 is a letter (General) or a report / graph description (Academic); Task 2 is an essay.
+TASK_OF: Dict[str, str] = {"essay": "task2", "letter": "task1", "report": "task1", "graph_description": "task1"}
+
 
 class EssayRequest(BaseModel):
-    essay: str = Field(..., min_length=50, description="The IELTS essay text")
-    task_type: str = Field(default="task2", pattern="^task[12]$", description="task1 or task2")
-    prompt_text: str = Field(default="", description="The question the essay answers")
+    essay: str = Field(..., min_length=50, description="The text written by the learner")
+    writing_type: WritingType = Field(default="essay", description="essay, letter, report or graph_description")
+    prompt_text: str = Field(default="", description="The question the text answers")
 
 
 class EssayMetrics(BaseModel):
@@ -27,10 +40,36 @@ class BandScores(BaseModel):
     overall: float
 
 
+class Issue(BaseModel):
+    type: str      # repeated_word, capitalization, confused_word, punctuation
+    line: int      # line number in the learner's text
+    text: str      # the part of the text that has the problem
+    message: str   # what is wrong and how to fix it
+
+
+class Alternative(BaseModel):
+    word: str      # the better word
+    meaning: str   # what it means
+    example: str   # an example sentence
+
+
+class WordSuggestion(BaseModel):
+    word: str                      # the common word the learner used
+    count: int                     # how many times it was used
+    line: int                      # line of the first use
+    alternatives: List[Alternative]
+
+
 class EssayResult(BaseModel):
     submission_id: int
+    writing_type: str
+    min_words: int
     metrics: EssayMetrics
     bands: BandScores
+    issues: List[Issue]
+    word_suggestions: List[WordSuggestion]
+    improved_text: str
+    changes: List[str]
     feedback: List[str]
 
 

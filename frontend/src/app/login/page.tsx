@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthCard } from "@/components/auth-card";
-import { Button, ErrorAlert, Field, Spinner } from "@/components/ui";
+import { PasswordField } from "@/components/password-field";
+import { Alert, Button, Field, TextLink } from "@/components/ui";
 import { errorMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -34,22 +34,19 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthCard title="Welcome back" subtitle="Log in to continue your practice.">
-      <form onSubmit={onSubmit} className="space-y-4">
-        {error && <ErrorAlert>{error}</ErrorAlert>}
+    <AuthCard title="Welcome back" subtitle="Log in to pick up where you left off.">
+      <form onSubmit={onSubmit} className="grid gap-5">
+        {error && <Alert>{error}</Alert>}
         <Field id="email" label="Email" type="email" autoComplete="email" required value={email}
           onChange={(e) => setEmail(e.target.value)} />
-        <Field id="password" label="Password" type="password" autoComplete="current-password" required value={password}
+        <PasswordField id="password" label="Password" autoComplete="current-password" required value={password}
           onChange={(e) => setPassword(e.target.value)} />
-        <Button type="submit" className="w-full gap-2" disabled={busy}>
-          {busy && <Spinner />} Log in
+        <Button type="submit" loading={busy} className="mt-1 w-full">
+          {busy ? "Logging in…" : "Log in"}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-zinc-500">
-        New here?{" "}
-        <Link href="/register" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-          Create an account
-        </Link>
+      <p className="mt-8 text-ink-2">
+        New to Cadence? <TextLink href="/register">Create an account</TextLink>
       </p>
     </AuthCard>
   );
