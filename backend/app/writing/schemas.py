@@ -1,13 +1,20 @@
-from datetime import datetime
-from typing import List
+from pydantic import BaseModel, Field
+from typing import Dict, List, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+WritingType = Literal["essay", "letter", "report", "graph_description"]
+
+# Minimum words IELTS expects for each writing type
+MIN_WORDS: Dict[str, int] = {
+    "essay": 250,
+    "letter": 150,
+    "report": 150,
+    "graph_description": 150,
+}
 
 
 class EssayRequest(BaseModel):
-    essay: str = Field(..., min_length=50, description="The IELTS essay text")
-    task_type: str = Field(default="task2", pattern="^task[12]$", description="task1 or task2")
-    prompt_text: str = Field(default="", description="The question the essay answers")
+    essay: str = Field(..., min_length=50, description="The text written by the learner")
+    writing_type: WritingType = Field(default="essay", description="essay, letter, report or graph_description")
 
 
 class EssayMetrics(BaseModel):
@@ -27,22 +34,33 @@ class BandScores(BaseModel):
     overall: float
 
 
+class Issue(BaseModel):
+    type: str      # repeated_word, capitalization, confused_word, punctuation
+    line: int      # line number in the learner's text
+    text: str      # the part of the text that has the problem
+    message: str   # what is wrong and how to fix it
+
+
+class Alternative(BaseModel):
+    word: str      # the better word
+    meaning: str   # what it means
+    example: str   # an example sentence
+
+
+class WordSuggestion(BaseModel):
+    word: str                      # the common word the learner used
+    count: int                     # how many times it was used
+    line: int                      # line of the first use
+    alternatives: List[Alternative]
+
+
 class EssayResult(BaseModel):
-    submission_id: int
+    writing_type: str
+    min_words: int
     metrics: EssayMetrics
     bands: BandScores
+    issues: List[Issue]
+    word_suggestions: List[WordSuggestion]
+    improved_text: str
+    changes: List[str]
     feedback: List[str]
-
-
-class WritingSubmissionSummary(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    writing_id: int
-    task_type: str
-    word_count: int
-    task_response_score: float | None
-    grammar_score: float | None
-    coherence_score: float | None
-    vocabulary_score: float | None
-    status: str
-    submitted_at: datetime

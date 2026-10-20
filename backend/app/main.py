@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,9 @@ from app.db.session import get_db
 from app.writing.router import router as writing_router
 
 app = FastAPI(title="Cadence API")
+@app.get("/", include_in_schema=False)
+def home():
+    return RedirectResponse(url="/docs")
 
 app.add_middleware(
     CORSMiddleware,

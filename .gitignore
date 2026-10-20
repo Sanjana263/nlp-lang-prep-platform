@@ -13,3 +13,4 @@ __pycache__/
 tsconfig.tsbuildinfo
 next-env.d.ts
 .claude/
+backend/venv312/
