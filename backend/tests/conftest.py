@@ -3,6 +3,9 @@ import os
 # Set BEFORE the app is imported. Env vars beat .env, so tests never touch Neon.
 os.environ["DATABASE_URL"] = "sqlite:///./unused_test.db"   # engine is never used; get_db is overridden
 os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret-123456"
+os.environ["SPEECH_WARMUP"] = "false"   # no model loading in tests
+os.environ["ANTHROPIC_API_KEY"] = ""     # never call the LLM from tests
+os.environ["UPLOAD_DIR"] = os.path.join(os.path.dirname(__file__), ".uploads")
 
 import pytest
 from fastapi.testclient import TestClient
