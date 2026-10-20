@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -26,6 +27,12 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Cadence API", lifespan=lifespan)
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return RedirectResponse(url="/docs")
+
 
 app.add_middleware(
     CORSMiddleware,
