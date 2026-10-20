@@ -13,6 +13,15 @@ MIN_WORDS: Dict[str, int] = {
     "graph_description": 150,
 }
 
+# Shortest text we accept for scoring. This is NOT the scoring benchmark: Task Response is still
+# judged against MIN_WORDS above, so a 50-word answer is accepted but scores low on length.
+SUBMIT_MIN_WORDS: Dict[str, int] = {
+    "essay": 50,
+    "letter": 50,
+    "report": 50,
+    "graph_description": 50,
+}
+
 # IELTS Task 1 is a letter (General) or a report / graph description (Academic); Task 2 is an essay.
 TASK_OF: Dict[str, str] = {"essay": "task2", "letter": "task1", "report": "task1", "graph_description": "task1"}
 

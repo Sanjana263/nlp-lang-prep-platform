@@ -9,6 +9,7 @@ import {
   PencilLineIcon,
   TextAaIcon,
 } from "@phosphor-icons/react/ssr";
+import { AlertDialog } from "@/components/alert-dialog";
 import { Alert, Badge, BandFigure, BandScale, Button, Eyebrow, PageHeader, Panel, SectionHeading } from "@/components/ui";
 import { api, errorMessage, type EssayResult, type WritingPrompt } from "@/lib/api";
 import { bandTone, formatBand } from "@/lib/bands";
@@ -21,8 +22,8 @@ const randomIndex = (length: number, not?: number) => {
   return i;
 };
 
-const MIN_CHARS = 50; // backend rule (EssayRequest.min_length)
-const TARGET_WORDS = 250; // IELTS Task 2 minimum
+const MIN_WORDS = 50; // shortest essay we score; the backend enforces the same limit (SUBMIT_MIN_WORDS)
+const EXAM_WORDS = 250; // what the real IELTS Task 2 expects; shorter essays score lower on Task response
 const countWords = (t: string) => (t.trim() ? t.trim().split(/\s+/).length : 0);
 
 const CRITERIA: { key: "task_response" | "coherence" | "vocabulary" | "grammar"; label: string; asks: string }[] = [
@@ -38,7 +39,7 @@ export function WritingView() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [essay, setEssay] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [dialogMessage, setDialogMessage] = useState<string | null>(null);
   const [result, setResult] = useState<EssayResult | null>(null);
 
   useEffect(() => {
@@ -59,12 +60,16 @@ export function WritingView() {
 
   const prompt = prompts?.[promptIndex] ?? null;
   const words = countWords(essay);
-  const tooShort = essay.trim().length < MIN_CHARS;
-  const progress = Math.min(1, words / TARGET_WORDS);
+  const tooShort = words < MIN_WORDS;
+  const progress = Math.min(1, words / MIN_WORDS);
 
   async function submit() {
     if (!prompt) return;
-    setError(null);
+    if (tooShort) {
+      const need = MIN_WORDS - words;
+      setDialogMessage(`Less context to examine your writing, please write ${need} more word${need === 1 ? "" : "s"}.`);
+      return;
+    }
     setBusy(true);
     try {
       const res = await api<EssayResult>("/writing/evaluate", {
@@ -74,7 +79,7 @@ export function WritingView() {
       setResult(res);
       window.scrollTo({ top: 0 });
     } catch (e) {
-      setError(errorMessage(e));
+      setDialogMessage(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -83,7 +88,6 @@ export function WritingView() {
   function reset() {
     setResult(null);
     setEssay("");
-    setError(null);
   }
 
   if (result) return <ResultView result={result} prompt={prompt?.prompt_text ?? ""} onAgain={reset} />;
@@ -120,7 +124,7 @@ export function WritingView() {
               <ClockIcon aria-hidden size={18} className="text-ink-3" /> Spend about 40 minutes on this task.
             </li>
             <li className="flex items-center gap-2.5">
-              <TextAaIcon aria-hidden size={18} className="text-ink-3" /> Write at least {TARGET_WORDS} words.
+              <TextAaIcon aria-hidden size={18} className="text-ink-3" /> Write at least {MIN_WORDS} words to be scored. The real exam expects {EXAM_WORDS}.
             </li>
           </ul>
           <Button
@@ -141,7 +145,7 @@ export function WritingView() {
                 Answer sheet
               </label>
               <span className="font-mono text-xs text-ink-3 tabular-nums" aria-hidden>
-                {words} / {TARGET_WORDS} words
+                {words} / {MIN_WORDS} words
               </span>
             </div>
             <textarea
@@ -166,24 +170,26 @@ export function WritingView() {
                 />
               </div>
               <p id="essay-count" aria-live="polite" className="flex items-center gap-1.5 text-sm text-ink-2">
-                {words >= TARGET_WORDS ? (
+                {words >= MIN_WORDS ? (
                   <>
                     <CheckCircleIcon aria-hidden size={16} weight="fill" className="text-success" />
                     {words} words. You have reached the minimum.
                   </>
                 ) : (
-                  <>{words} words, {TARGET_WORDS - words} to go.</>
+                  <>{words} words, {MIN_WORDS - words} to go.</>
                 )}
               </p>
             </div>
-            <Button onClick={submit} disabled={tooShort} loading={busy}>
+            <Button
+              onClick={submit}
+              loading={busy}
+              aria-disabled={tooShort || undefined}
+              className={tooShort ? "cursor-not-allowed! opacity-45! hover:bg-accent!" : undefined}
+            >
               {busy ? "Scoring your essay…" : "Submit for scoring"}
             </Button>
           </div>
-          {!busy && essay.length > 0 && tooShort && (
-            <p className="text-sm text-ink-3">Write a few more sentences to enable scoring.</p>
-          )}
-          {error && <Alert>{error}</Alert>}
+          <AlertDialog message={dialogMessage} onClose={() => setDialogMessage(null)} />
         </div>
       </div>
     </div>

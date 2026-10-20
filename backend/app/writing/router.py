@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ from app.models import User, WritingPrompt, WritingSubmission
 from app.writing.analyzer import analyze_essay
 from app.writing.checks import run_all_checks, structure_tips
 from app.writing.schemas import (
-    MIN_WORDS, TASK_OF, EssayRequest, EssayResult, WritingPromptOut, WritingSubmissionSummary, WritingType,
+    MIN_WORDS, SUBMIT_MIN_WORDS, TASK_OF, EssayRequest, EssayResult, WritingPromptOut, WritingSubmissionSummary, WritingType,
 )
 from app.writing.scorer import score_essay
 from app.writing.vocabulary import find_suggestions, rewrite_text
@@ -37,6 +37,15 @@ def evaluate_essay(
     user: User = Depends(get_current_user),  # NFR-2.1: login required
     db: Session = Depends(get_db),
 ):
+    # Reject essays below the minimum length before anything is saved or scored.
+    min_words = MIN_WORDS[request.writing_type]  # scoring benchmark (IELTS length), not the submit limit
+    short_by = SUBMIT_MIN_WORDS[request.writing_type] - len(request.essay.split())
+    if short_by > 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Less context to examine your writing, please write {short_by} more word{'s' if short_by != 1 else ''}.",
+        )
+
     # NFR-3.2: save the submission FIRST so it is never lost if analysis fails.
     submission = WritingSubmission(
         user_id=user.user_id,
@@ -50,7 +59,6 @@ def evaluate_essay(
     db.commit()
 
     try:
-        min_words = MIN_WORDS[request.writing_type]
         metrics = analyze_essay(request.essay)
         issues = run_all_checks(request.essay)
         word_suggestions = find_suggestions(request.essay)
