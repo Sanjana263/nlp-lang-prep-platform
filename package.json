@@ -11,7 +11,8 @@
     "test": "node scripts/py.mjs -m pytest",
     "lint": "npm --prefix frontend run lint",
     "create-admin": "node scripts/py.mjs -m scripts.create_admin",
-    "seed-writing": "node scripts/py.mjs -m scripts.seed_writing_prompts"
+    "seed-writing": "node scripts/py.mjs -m scripts.seed_writing_prompts",
+    "check-speech": "node scripts/py.mjs -m scripts.check_speech"
   },
   "devDependencies": {
     "concurrently": "^10.0.6"

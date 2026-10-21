@@ -200,7 +200,7 @@ export interface SpeakingBands {
   fluency: number;
   lexical: number;
   grammar: number;
-  pronunciation: number;
+  pronunciation: number | null; // null when the pronunciation checker was unavailable
   overall: number;
 }
 
@@ -236,7 +236,7 @@ export interface SpeakingAnalysis {
     repetitions: number;
   };
   text: { mattr: number; rare_word_ratio: number; rare_words: string[]; complex_sentence_ratio: number; discourse_markers: string[] };
-  pronunciation: { accuracy: number; substitutions: Record<string, string[]> };
+  pronunciation: { accuracy: number; substitutions: Record<string, string[]>; available?: boolean; error?: string | null };
   words: SpeakingWord[];
   feedback: string[];
   corrections: { original: string; corrected: string; explanation: string }[];

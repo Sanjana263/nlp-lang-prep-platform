@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
@@ -17,6 +18,7 @@ from app.speaking.service import process_submission, upload_root
 router = APIRouter(prefix="/speaking", tags=["speaking"])
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+STUCK_AFTER = timedelta(minutes=3)  # a recording still unscored after this long may be retried
 AUDIO_TYPES = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mp4": ".m4a", "audio/mpeg": ".mp3",
                "audio/wav": ".wav", "audio/x-wav": ".wav", "audio/wave": ".wav", "video/webm": ".webm"}
 
@@ -102,8 +104,9 @@ def submission_audio(speaking_id: int, user: User = Depends(get_current_user), d
 def retry(speaking_id: int, background: BackgroundTasks, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """NFR-3.2: a failed analysis keeps the recording, so it can be scored again."""
     sub = _own(db, user, speaking_id)
-    if sub.status != "failed":
-        raise HTTPException(status_code=409, detail="Only a recording that failed to score can be retried.")
+    stuck = sub.status in ("pending", "processing") and datetime.now(timezone.utc) - sub.submitted_at > STUCK_AFTER
+    if sub.status != "failed" and not stuck:
+        raise HTTPException(status_code=409, detail="Only a recording that failed to score, or is stuck, can be retried.")
     sub.status, sub.error_message = "pending", None
     db.commit()
     background.add_task(process_submission, sub.speaking_id, get_settings().UPLOAD_DIR)

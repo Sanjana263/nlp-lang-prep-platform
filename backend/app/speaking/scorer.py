@@ -59,7 +59,7 @@ class SpeakingBands:
     fluency: float
     lexical: float
     grammar: float
-    pronunciation: float
+    pronunciation: float | None   # None when the pronunciation checker was unavailable
     overall: float
 
 
@@ -181,10 +181,20 @@ def build_feedback(f: FluencyMetrics, t: TextMetrics, p: PronunciationResult, pa
     return tips
 
 
-def assess(f: FluencyMetrics, t: TextMetrics, p: PronunciationResult, part: int) -> Assessment:
-    fc, lr, gra, pr = score_fluency(f, t, part), score_lexical(t, part), score_grammar(t), score_pronunciation(p)
+def overall_band(b: SpeakingBands) -> float:
+    """Mean of the criteria that were scored (pronunciation is left out when it is None)."""
+    parts = [x for x in (b.fluency, b.lexical, b.grammar, b.pronunciation) if x is not None]
+    return round_band(sum(parts) / len(parts))
+
+
+def assess(f: FluencyMetrics, t: TextMetrics, p: PronunciationResult, part: int,
+           pronunciation_available: bool = True) -> Assessment:
+    fc, lr, gra = score_fluency(f, t, part), score_lexical(t, part), score_grammar(t)
+    pr = score_pronunciation(p) if pronunciation_available else None
+    parts = [fc, lr, gra] + ([pr] if pr is not None else [])
     bands = SpeakingBands(
-        fluency=round_band(fc), lexical=round_band(lr), grammar=round_band(gra), pronunciation=round_band(pr),
-        overall=round_band((fc + lr + gra + pr) / 4),
+        fluency=round_band(fc), lexical=round_band(lr), grammar=round_band(gra),
+        pronunciation=round_band(pr) if pr is not None else None,
+        overall=round_band(sum(parts) / len(parts)),
     )
     return Assessment(bands=bands, feedback=build_feedback(f, t, p, part), mistake_patterns=mistake_patterns(f, p))

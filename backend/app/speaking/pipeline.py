@@ -1,4 +1,5 @@
 """Full speaking analysis for one recording: STT -> fluency -> pronunciation -> text -> bands."""
+import logging
 import time
 from dataclasses import asdict
 
@@ -7,6 +8,10 @@ import numpy as np
 from app.core.config import get_settings
 from app.speaking import examiner, pronunciation_remote, scorer, stt
 from app.speaking.fluency import analyse as analyse_fluency
+from app.speaking.pronunciation import PronunciationResult
+from app.speaking.stt import SpeechServiceError
+
+log = logging.getLogger(__name__)
 
 
 class NoSpeechError(ValueError):
@@ -21,7 +26,7 @@ def analyse_recording(audio_path: str, audio: np.ndarray, part: int, question: s
 
     t = time.perf_counter()
     if cloud:
-        words, clean_text = stt.transcribe_groq(audio_path, settings.GROQ_API_KEY, settings.GROQ_STT_MODEL)
+        words, clean_text = stt.transcribe_groq(audio_path, settings.GROQ_API_KEY, settings.GROQ_STT_MODEL, audio)
     else:
         words, clean_text = stt.transcribe_local(audio, settings.SPEECH_STT_MODEL)
     timings["transcribe"] = round(time.perf_counter() - t, 1)
@@ -30,17 +35,24 @@ def analyse_recording(audio_path: str, audio: np.ndarray, part: int, question: s
 
     fluency = analyse_fluency(words)
 
+    # The transcript is already in hand. A pronunciation failure (Space asleep, not deployed,
+    # daily GPU quota used up) must not throw it away: score everything else and say so.
     t = time.perf_counter()
-    if cloud:
-        pron = pronunciation_remote.assess(audio_path, words, settings.HF_SPEECH_SPACE, settings.HF_TOKEN)
-    else:
-        from app.speaking import pronunciation  # heavy (torch); local mode only
+    pron_error = None
+    try:
+        if cloud:
+            pron = pronunciation_remote.assess(audio_path, words, settings.HF_SPEECH_SPACE, settings.HF_TOKEN)
+        else:
+            from app.speaking import pronunciation  # heavy (torch); local mode only
 
-        pron = pronunciation.assess(audio, words, settings.SPEECH_PHONEME_MODEL)
+            pron = pronunciation.assess(audio, words, settings.SPEECH_PHONEME_MODEL)
+    except SpeechServiceError as exc:
+        log.warning("Pronunciation unavailable, scoring without it: %s", exc)
+        pron, pron_error = PronunciationResult(accuracy=0.0, words=[]), str(exc)
     timings["pronunciation"] = round(time.perf_counter() - t, 1)
 
     text = scorer.text_metrics(clean_text)
-    result = scorer.assess(fluency, text, pron, part)
+    result = scorer.assess(fluency, text, pron, part, pronunciation_available=pron_error is None)
     bands = result.bands
     transcript = stt.transcript_text(words)
 
@@ -52,7 +64,7 @@ def analyse_recording(audio_path: str, audio: np.ndarray, part: int, question: s
     feedback, corrections, upgrades = result.feedback, [], []
     if review is not None:
         bands.lexical, bands.grammar = review.lexical_band, review.grammar_band
-        bands.overall = scorer.round_band((bands.fluency + bands.lexical + bands.grammar + bands.pronunciation) / 4)
+        bands.overall = scorer.overall_band(bands)
         # Examiner tips on language first, then the audio-based tips the examiner can't give.
         audio_tips = [tip for tip in result.feedback if any(k in tip for k in ("words per minute", "paused", "filler", "Practise these words", "short ("))]
         feedback = review.feedback + audio_tips
@@ -70,6 +82,8 @@ def analyse_recording(audio_path: str, audio: np.ndarray, part: int, question: s
         "pronunciation": {
             "accuracy": pron.accuracy,
             "substitutions": pron.substitutions,
+            "available": pron_error is None,
+            "error": pron_error,
         },
         "words": [
             {

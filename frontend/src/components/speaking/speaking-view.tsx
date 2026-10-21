@@ -22,6 +22,30 @@ type Stage =
   | { kind: "result"; detail: SpeakingSubmissionDetail };
 
 const POLL_MS = 2000;
+const SLOW_AFTER_MS = 200_000; // the backend allows a retry once a recording has been unscored for 3 minutes
+
+/** Appears if scoring is still running after SLOW_AFTER_MS, with a way out. */
+function SlowNotice({ onRetry }: { onRetry: () => void }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setShow(true), SLOW_AFTER_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+  if (!show) return null;
+  return (
+    <div className="grid gap-3 border-t border-rule pt-4">
+      <p className="text-ink-2">
+        This is taking longer than usual. The server may have restarted or the pronunciation checker may be busy.
+        Your recording is saved.
+      </p>
+      <div>
+        <Button variant="secondary" onClick={onRetry}>
+          <ArrowCounterClockwiseIcon aria-hidden size={18} /> Score it again
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function SpeakingView() {
   const [stage, setStage] = useState<Stage>({ kind: "pick" });
@@ -178,6 +202,7 @@ export function SpeakingView() {
                 under 30 seconds, but the first answer of the day can take a few minutes while the pronunciation
                 checker starts up. You can leave this page; the result will be in your recent answers.
               </p>
+              <SlowNotice key={`${stage.id}-${stage.attempt}`} onRetry={() => retry(stage.id)} />
             </div>
           )}
         </Panel>

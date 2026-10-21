@@ -143,6 +143,8 @@ frontend/src/
 | `Can't find model 'en_core_web_lg'` | Run `npm run setup` (the model is listed in `requirements.txt`). |
 | `Python 3.12 or 3.13 is required` | Install Python 3.12 from python.org, then re-run `npm run setup`. |
 | "Microphone access is blocked" | Allow the microphone for localhost in the browser's site settings. Recording needs `http://localhost` or https. |
+| Speaking answer has no transcript, or you aren't sure which stage fails | Run `npm run check-speech -- backend/uploads/speaking/<user id>/<file>.webm`. It tests the key, decoding, Groq and the Space one by one and prints the exact error. |
+| Speaking result says "pronunciation check wasn't available" | The transcript and the other three bands are fine; only the Hugging Face Space failed (not deployed, asleep or out of daily quota). Fix `HF_SPEECH_SPACE` / `HF_TOKEN`, or ignore it. |
 | Speaking answer fails: "isn't set up yet" | Add `GROQ_API_KEY`, `HF_TOKEN` and `HF_SPEECH_SPACE` to `backend/.env` (see Speaking setup), restart `npm run dev`. |
 | Speaking answer fails: "starting up or busy" | The Space was asleep or still building. Open it on huggingface.co to check, then **Score it again**. |
 | "Today's free pronunciation-check limit is used up" | Your Hugging Face account's 5 daily ZeroGPU minutes are spent; it resets 24 hours after first use. |

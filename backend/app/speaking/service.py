@@ -25,15 +25,37 @@ def upload_root(upload_dir: str) -> Path:
     return root if root.is_absolute() else BACKEND_DIR / root
 
 
+def _mark_failed(submission_id: int, message: str) -> None:
+    db = session_factory()
+    try:
+        sub = db.get(SpeakingSubmission, submission_id)
+        if sub is not None and sub.status != "completed":
+            sub.status, sub.error_message = "failed", message
+            db.commit()
+    finally:
+        db.close()
+
+
 def process_submission(submission_id: int, upload_dir: str) -> None:
-    from app.speaking.pipeline import NoSpeechError, analyse_recording  # heavy imports, load lazily
-    from app.speaking.stt import SpeechServiceError
+    try:
+        # Heavy imports, loaded lazily. If one fails (a missing package), the row must still be
+        # marked failed: an exception that escapes a background task leaves it "pending" forever.
+        from app.speaking.pipeline import NoSpeechError, analyse_recording
+        from app.speaking.stt import SpeechServiceError
+    except Exception:
+        log.exception("Speaking scoring could not start for submission %s", submission_id)
+        _mark_failed(
+            submission_id,
+            "Scoring couldn't start because a backend package failed to load. "
+            "Check the backend terminal for the error, run `npm run setup`, then score again.",
+        )
+        return
 
     with _run_lock:
         db = session_factory()
         try:
             sub = db.get(SpeakingSubmission, submission_id)
-            if sub is None:
+            if sub is None or sub.status == "completed":  # a retry that lost the race to the first run
                 return
             sub.status, sub.error_message = "processing", None
             db.commit()

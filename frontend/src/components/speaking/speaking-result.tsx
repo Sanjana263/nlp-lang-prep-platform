@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRightIcon, CheckCircleIcon, LightbulbIcon, MicrophoneIcon, WaveformIcon } from "@phosphor-icons/react/ssr";
-import { Badge, BandFigure, BandScale, Button, Eyebrow, PageHeader, Panel, SectionHeading } from "@/components/ui";
+import { Alert, Badge, BandFigure, BandScale, Button, Eyebrow, PageHeader, Panel, SectionHeading } from "@/components/ui";
 import { apiBlob, type SpeakingSubmissionDetail, type SpeakingWord } from "@/lib/api";
 import { bandTone, formatBand } from "@/lib/bands";
 
@@ -47,6 +47,13 @@ export function SpeakingResult({ detail, onAgain }: { detail: SpeakingSubmission
         }
       />
 
+      {a.pronunciation.available === false && (
+        <Alert tone="info">
+          Your answer was transcribed and scored, but the pronunciation check wasn&apos;t available this time
+          {a.pronunciation.error ? ` (${a.pronunciation.error})` : ""}. The overall band uses the other three criteria.
+        </Alert>
+      )}
+
       <Panel className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
         <div className="grid content-start gap-5">
           <Eyebrow>Overall band</Eyebrow>
@@ -57,7 +64,9 @@ export function SpeakingResult({ detail, onAgain }: { detail: SpeakingSubmission
           </p>
         </div>
         <ul className="grid min-w-0 gap-6">
-          {CRITERIA.map(({ key, label, asks, source }) => (
+          {CRITERIA.map(({ key, label, asks, source }) => {
+            const score = a.bands[key];
+            return (
             <li key={key} className="grid gap-2">
               <div className="flex items-baseline justify-between gap-4">
                 <div className="min-w-0">
@@ -69,13 +78,14 @@ export function SpeakingResult({ detail, onAgain }: { detail: SpeakingSubmission
                   </p>
                   <p className="text-sm text-ink-3">{asks}</p>
                 </div>
-                <span className={`font-display text-3xl font-semibold tabular-nums ${bandTone(a.bands[key])}`}>
-                  {formatBand(a.bands[key])}
+                <span className={`font-display text-3xl font-semibold tabular-nums ${score === null ? "text-ink-3" : bandTone(score)}`}>
+                  {formatBand(score)}
                 </span>
               </div>
-              <BandScale score={a.bands[key]} size="sm" label={label} />
+              {score !== null && <BandScale score={score} size="sm" label={label} />}
             </li>
-          ))}
+            );
+          })}
         </ul>
       </Panel>
 
@@ -212,7 +222,11 @@ export function SpeakingResult({ detail, onAgain }: { detail: SpeakingSubmission
             <Stat label="Words between pauses" value={f.mean_length_of_run.toFixed(1)} hint="Higher is smoother" />
             <Stat label="Pauses per minute" value={f.pauses_per_minute.toFixed(1)} hint={`${f.long_pauses} longer than 1 second`} />
             <Stat label="Filler sounds" value={String(f.filler_count)} hint={`${f.fillers_per_100_words} per 100 words`} />
-            <Stat label="Sounds said clearly" value={`${Math.round(a.pronunciation.accuracy * 100)}%`} hint="Checked sound by sound" />
+            <Stat
+              label="Sounds said clearly"
+              value={a.pronunciation.available === false ? "–" : `${Math.round(a.pronunciation.accuracy * 100)}%`}
+              hint={a.pronunciation.available === false ? "Not checked this time" : "Checked sound by sound"}
+            />
             <Stat label="Speaking time" value={`${Math.round(f.speaking_seconds)} s`} hint={`${f.word_count} words`} />
           </dl>
           <p className="mt-6 flex items-start gap-2 text-sm text-ink-3">

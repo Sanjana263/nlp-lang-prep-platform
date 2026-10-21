@@ -1,3 +1,4 @@
+import logging
 import threading
 from contextlib import asynccontextmanager
 
@@ -14,8 +15,32 @@ from app.speaking.router import router as speaking_router
 from app.writing.router import router as writing_router
 
 
+def _fail_orphaned_jobs() -> None:
+    """Background jobs live in this process, so a restart (including uvicorn --reload after any
+    code change) silently kills them and leaves their rows "pending" forever. Mark them failed
+    so the learner can press "Score it again". Assumes one server process, as in `npm run dev`."""
+    try:
+        from sqlalchemy import update
+
+        from app.db.session import SessionLocal
+        from app.models import SpeakingSubmission
+
+        with SessionLocal() as db:
+            n = db.execute(
+                update(SpeakingSubmission)
+                .where(SpeakingSubmission.status.in_(("pending", "processing")))
+                .values(status="failed", error_message="Scoring was interrupted when the server restarted. Your recording is saved; press Score it again.")
+            ).rowcount
+            db.commit()
+        if n:
+            log.warning("Marked %s interrupted speaking submission(s) as failed so they can be retried", n)
+    except Exception:
+        log.exception("Could not clean up interrupted speaking submissions")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    _fail_orphaned_jobs()
     settings = get_settings()
     if settings.SPEECH_MODE == "local" and settings.SPEECH_WARMUP:
         from app.speaking.service import warm_up
@@ -26,6 +51,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
+log = logging.getLogger(__name__)
 app = FastAPI(title="Cadence API", lifespan=lifespan)
 
 
